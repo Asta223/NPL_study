@@ -18,9 +18,10 @@ import matplotlib.pyplot as plt
 '''
 
 class TorchModel(nn.Module):
-    def __init__(self, input_size,weight):  # ZHUZMA:level维度
+
+    def __init__(self, input_size,hidden_size):  # ZHUZMA:level维度
         super(TorchModel, self).__init__()
-        self.linear = nn.Linear(input_size, weight)  # 线性层
+        self.linear = nn.Linear(input_size, hidden_size)  # 线性层
 
         # self.activation = torch.sigmoid  # nn.Sigmoid() sigmoid归一化函数
         # self.loss = nn.functional.mse_loss  # loss函数采用均方差损失
@@ -29,22 +30,20 @@ class TorchModel(nn.Module):
 
     # 当输入真实标签，返回loss值；无真实标签，返回预测值
     def forward(self, x, y=None):
-
         # ZHUZMA:loss函数采用交叉熵损失，已内置了sortmax激活函数
         # x = self.linear(x)  # (batch_size, input_size) -> (batch_size, 1)
         # y_pred = self.activation(x)  # (batch_size, 1) -> (batch_size, 1)
-
         y_pred = self.linear(x)
         if y is not None:
             return self.loss(y_pred, y)  # 预测值和真实值计算损失
         else:
-            return y_pred  # 输出预测结果
+            return torch.softmax(y_pred,axis = -1)  # 输出预测结果,softmax进行规划
 
 
 # 生成一个样本, 样本的生成方法，代表了我们要学习的规律
 # ZHUZMA:随机生成一个5维向量，返回最大值所在的索引
-def build_sample(weight):
-    x = np.random.random(weight)
+def build_sample(hidden_size):
+    x = np.random.random(hidden_size)
 
     # if x[0] > x[4]:
     #     return x, 1
@@ -52,17 +51,19 @@ def build_sample(weight):
     #     return x, 0
 
     #  ZHUZMA:查找最大值,i用于遍历，index用于记录最大值索引
-    index = np.argmax(x)
+    index = np.argmax(x) 
     return x,index
 
 # 随机生成一批样本
-def build_dataset(total_sample_num,weight):
+def build_dataset(total_sample_num,hidden_size):
     X = []
     Y = []
     for i in range(total_sample_num):
-        x, y = build_sample(weight)
+        x, y = build_sample(hidden_size)
         X.append(x)
         Y.append(y)
+    X = np.array(X)
+    Y = np.array(Y)
     return torch.FloatTensor(X), torch.LongTensor(Y)
 
 # 测试代码
@@ -102,11 +103,11 @@ def main():
     train_sample = 5000  # 每轮训练总共训练的样本总数
     input_size = 5  # 输入向量维度
     learning_rate = 0.001  # 学习率
-    weight = 5
+    hidden_size = 5
 
     # 建立模型
     print("建立模型")
-    model = TorchModel(input_size,weight)
+    model = TorchModel(input_size,hidden_size)
 
     # 选择优化器
     print("选择优化器")
@@ -115,7 +116,7 @@ def main():
 
     print("开始训练")
     # 创建训练集，正常任务是读取训练集
-    train_x, train_y = build_dataset(train_sample,weight)
+    train_x, train_y = build_dataset(train_sample,hidden_size)
     # 训练过程
     for epoch in range(epoch_num):
         model.train()
@@ -132,27 +133,31 @@ def main():
         acc = evaluate(model,input_size)  # 测试本轮模型结果
         log.append([acc, float(np.mean(watch_loss))])
 
-        #·ZHUZMA:提前结束预测
-        # if acc > 0.95:
-        #     print("预测拟合，结束训练")
-        #     break
+        #ZHUZMA:提前结束预测
+        if acc > 0.98:
+            print("预测拟合，结束训练")
+            break
 
-    # 保存模型
-    torch.save(model.state_dict(), "model.bin")
-
-    # 画图
+    # # 保存模型
+    # torch.save(model.state_dict(), "model.bin")
+    #
+    # # 画图
+    print("log:")
     print(log)
-    plt.plot(range(len(log)), [l[0] for l in log], label="acc")  # 画acc曲线
-    plt.plot(range(len(log)), [l[1] for l in log], label="loss")  # 画loss曲线
-    plt.legend()
-    plt.show()
+    # plt.plot(range(len(log)), [l[0] for l in log], label="acc")  # 画acc曲线
+    # plt.plot(range(len(log)), [l[1] for l in log], label="loss")  # 画loss曲线
+    # plt.legend()
+    # plt.show()
     return
 
 # 使用训练好的模型做预测
 def predict(model_path, input_vec):
     input_size = 5
     model = TorchModel(input_size)
-    model.load_state_dict(torch.load(model_path))  # 加载训练好的权重
+
+    # model.load_state_dict(torch.load(model_path))  # 加载训练好的权重
+    model.load_state_dict(torch.load(model_path, weights_only=True))  # zhuzma:只加载模型权重，不执行任意代码
+
     print(model.state_dict())
 
     model.eval()  # 测试模式
