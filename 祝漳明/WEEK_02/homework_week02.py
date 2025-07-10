@@ -5,6 +5,9 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 """
 
 基于pytorch框架编写模型训练
@@ -86,7 +89,6 @@ def evaluate(model,input_size):
             #     wrong += 1
 
             # ZHUZMA:此处改动，只要预测值与真实值相等，则预测正确
-
             if torch.argmax(y_p) == int(y_t):
                 correct += 1
             else:
@@ -139,21 +141,21 @@ def main():
             break
 
     # # 保存模型
-    # torch.save(model.state_dict(), "model.bin")
-    #
+    torch.save(model.state_dict(), "model.bin")
+
     # # 画图
-    print("log:")
-    print(log)
-    # plt.plot(range(len(log)), [l[0] for l in log], label="acc")  # 画acc曲线
-    # plt.plot(range(len(log)), [l[1] for l in log], label="loss")  # 画loss曲线
-    # plt.legend()
-    # plt.show()
+    print("log:",log)
+    plt.plot(range(len(log)), [l[0] for l in log], label="acc")  # 画acc曲线
+    plt.plot(range(len(log)), [l[1] for l in log], label="loss")  # 画loss曲线
+    plt.legend()
+    plt.show()
     return
 
 # 使用训练好的模型做预测
 def predict(model_path, input_vec):
     input_size = 5
-    model = TorchModel(input_size)
+    hidden_size = 5
+    model = TorchModel(input_size,hidden_size)
 
     # model.load_state_dict(torch.load(model_path))  # 加载训练好的权重
     model.load_state_dict(torch.load(model_path, weights_only=True))  # zhuzma:只加载模型权重，不执行任意代码
@@ -164,13 +166,13 @@ def predict(model_path, input_vec):
     with torch.no_grad():  # 不计算梯度
         result = model.forward(torch.FloatTensor(input_vec))  # 模型预测
     for vec, res in zip(input_vec, result):
-        print("输入：%s, 预测类别：%d, 概率值：%f" % (vec, round(float(res)), res))  # 打印结果
+        print("输入：%s, 预测类别：%s, 概率值：%s" % (vec, torch.argmax(res), res))  # 打印结果
 
 
 if __name__ == "__main__":
     main()
-    # test_vec = [[0.07889086,0.15229675,0.31082123,0.03504317,0.88920843],
-    #             [0.74963533,0.5524256,0.95758807,0.95520434,0.84890681],
-    #             [0.00797868,0.67482528,0.13625847,0.34675372,0.19871392],
-    #             [0.09349776,0.59416669,0.92579291,0.41567412,0.1358894]]
-    # predict("model.bin", test_vec)
+    test_vec = [[0.07889086,0.15229675,0.31082123,0.03504317,0.88920843],
+                [0.74963533,0.5524256,0.95758807,0.95520434,0.84890681],
+                [0.00797868,0.67482528,0.13625847,0.34675372,0.19871392],
+                [0.09349776,0.59416669,0.92579291,0.41567412,0.1358894]]
+    predict("model.bin", test_vec)
