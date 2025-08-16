@@ -1,5 +1,4 @@
-#week3作业
-
+#week4作业
 #词典；每个词后方存储的是其词频，词频仅为示例，不会用到，也可自行修改
 Dict = {"经常":0.1,
         "经":0.05,
@@ -15,14 +14,32 @@ Dict = {"经常":0.1,
         "分":0.1}
 
 #待切分文本
-sentence = "经常经有意见分歧"
+sentence = "经常有意见分歧"
 
-#实现全切分函数，输出根据字典能够切分出的所有的切分方式
-def all_cut(sentence, Dict):
-    #TODO
+#zhuzma:实现全切分函数，输出根据字典能够切分出的所有的切分方式
+def all_cut(sentence):
+    # TODO
+    DAG = {}
+    N = len(sentence)
+    for k in range(N):
+        tmplist = []
+        i = k
+        frag = sentence[k]
+        while i < N:
+            if frag in Dict:
+                tmplist.append(i)
+            i += 1
+            frag = sentence[k:i+1]
+        if not tmplist:
+            tmplist.append(k)
+        DAG[k] = tmplist
+    target = DAG
+    return target
+
+def all_cut_2(sentence):
     def dfs(start, path):
         if start == len(sentence):
-            target.append(' '.join(path))
+            target.append('/'.join(path))
             return
 
         for end in range(start + 1, len(sentence) + 1):
@@ -34,7 +51,6 @@ def all_cut(sentence, Dict):
 
     target = []
     dfs(0, [])
-
     return target
 
 #目标输出;顺序不重要
@@ -55,13 +71,40 @@ target = [
     ['经', '常', '有', '意', '见', '分', '歧']
 ]
 
+class DAGcode:
 
-# 获取所有切割路径
-all_paths = all_cut(sentence, Dict)
+    def __init__(self, sentence):
+        self.sentence = sentence
+        self.DAG = all_cut(sentence)
+        self.length = len(sentence)
+        self.unfinish_path = [[]]
+        self.finnish_path = []
 
-# 将所有路径存入一个字符串变量，每条路径占一行
-output_str = '\n'.join(all_paths)
+    def decode_next(self,path):
+        path_length = len("".join(path))
+        if path_length == self.length:
+            self.finnish_path.append(path)
+            return
+        candidates = self.DAG[path_length]
+        new_paths = []
+        for candidate in candidates:
+            new_paths.append(path + [self.sentence[path_length:candidate+1]])
+        self.unfinish_path += new_paths
+        return
 
-# 输出结果
-print(output_str)
+    def decode(self):
+        while self.unfinish_path != []:
+            path = self.unfinish_path.pop()
+            self.decode_next(path)
 
+def function_1():
+    dd = DAGcode(sentence)
+    dd.decode()
+    return dd.finnish_path
+
+def function_2():
+    all_paths = all_cut_2(sentence)
+    return all_paths
+
+print(function_1())
+print(function_2())
